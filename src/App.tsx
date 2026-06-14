@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { FamilyTree } from "./components/FamilyTree";
+import { HeroSection } from "./components/HeroSection";
 import { MemberDetails } from "./components/MemberDetails";
 import { Toolbar } from "./components/Toolbar";
 import type { FamilyMember, MemberDraft } from "./types";
@@ -26,6 +27,7 @@ export const App = () => {
   const [expandedGeneration, setExpandedGeneration] = useState<number>(1);
   const [status, setStatus] = useState("Your family tree is saved in this browser.");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const archiveRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     saveMembers(members);
@@ -144,8 +146,14 @@ export const App = () => {
     setPendingAction(null);
   };
 
+  const scrollToArchive = () => {
+    archiveRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <main className="app-shell">
+      <HeroSection onScrollDown={scrollToArchive} />
+      <div ref={archiveRef} className="archive-section">
       <Toolbar
         query={query}
         status={status}
@@ -176,6 +184,7 @@ export const App = () => {
         />
       </section>
 
+      </div>
       {pendingAction && (
         <ConfirmDialog
           title={pendingAction.type === "reset" ? "Reset family tree?" : "Delete member?"}

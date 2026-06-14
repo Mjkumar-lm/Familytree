@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { TreeMember } from "../types";
 import { getInitials } from "../utils/tree";
 
@@ -24,36 +24,42 @@ export const MemberNode = ({
   const hasChildren = member.children.length > 0;
   const depthTone = depth % 5;
   const relationLabel = member.relationship === "Direct Line" ? "Direct Heir" : member.relationship;
+  const relationClass = `relation-${member.relationship.toLowerCase().replace(/\s+/g, "-")}`;
 
   return (
     <div className={`member-node tone-${depthTone} ${isSelected ? "selected" : ""}`}>
-      <button type="button" className="profile-button" onClick={() => onSelect(member.id)}>
-        <span className="generation-pin">G{member.generation}</span>
-        <span className="avatar">
-          {member.image ? <img src={member.image} alt="" /> : <span>{getInitials(member.name)}</span>}
-        </span>
-        <span className="node-copy">
-          <strong>{member.name}</strong>
-          <span className="node-meta">
-            <span className={`relation-badge relation-${member.relationship.toLowerCase().replace(/\s+/g, "-")}`}>
-              {relationLabel}
-            </span>
-            {hasChildren && <span>{member.children.length} linked</span>}
-          </span>
-        </span>
+      <button type="button" className="plaque-button" onClick={() => onSelect(member.id)}>
+        <div className="plaque-grain" aria-hidden="true" />
+        <div className="plaque-inner">
+          <div className="plaque-avatar">
+            {member.image ? (
+              <img src={member.image} alt="" />
+            ) : (
+              <span>{getInitials(member.name)}</span>
+            )}
+          </div>
+          <div className="plaque-content">
+            <span className="plaque-gen-tag">G{member.generation}</span>
+            <strong className="plaque-name">{member.name}</strong>
+            <div className="plaque-meta">
+              <span className={`plaque-badge ${relationClass}`}>{relationLabel}</span>
+              {hasChildren && <span className="plaque-linked">{member.children.length} linked</span>}
+            </div>
+          </div>
+        </div>
       </button>
 
       {!hideCollapseButton && hasChildren && (
         <button
           type="button"
-          className="collapse-button-bottom"
+          className="tree-bud"
           aria-label={isCollapsed ? `Expand ${member.name}` : `Collapse ${member.name}`}
           onClick={() => onToggleCollapse(member.id)}
         >
           {isCollapsed ? (
-            <ChevronDown size={16} aria-hidden="true" />
+            <ChevronDown size={16} color="#fff" />
           ) : (
-            <ChevronDown size={16} aria-hidden="true" style={{ transform: "rotate(180deg)" }} />
+            <ChevronUp size={16} color="#fff" />
           )}
         </button>
       )}
