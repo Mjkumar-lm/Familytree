@@ -40,7 +40,7 @@ export const HeroSection = ({ onScrollDown }: { onScrollDown: () => void }) => {
         </div>
 
         <p className="hero-sanskrit">&#x0936;&#x094D;&#x0930;&#x0940; &#x0915;&#x0947;&#x0936;&#x094D;&#x0935;&#x093E;&#x0928;&#x093F;&#x092F;&#x093E; &#x0935;&#x0902;&#x0936;</p>
-        <h1 className="hero-title">Keswania</h1>
+        <h1 className="hero-title">Keshwani's</h1>
         <div className="hero-divider" aria-hidden="true">
           <span />
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" opacity="0.6">
@@ -48,8 +48,7 @@ export const HeroSection = ({ onScrollDown }: { onScrollDown: () => void }) => {
           </svg>
           <span />
         </div>
-        <p className="hero-subtitle">Twenty-five generations of an ancient lineage<br />preserved in one sacred family record</p>
-        <p className="hero-tagline">From the first ancestor Swar Ji to the present day</p>
+        <p className="hero-subtitle">Generations of an ancient lineage<br />preserved in one sacred family record</p>
       </div>
 
       <button className="hero-scroll-btn" onClick={onScrollDown} aria-label="Scroll to family archive">

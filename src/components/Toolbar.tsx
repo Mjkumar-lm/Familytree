@@ -42,7 +42,7 @@ export const Toolbar = ({
         <div>
           <p className="eyebrow">Generation Archive</p>
           <h1>Lineage Archive</h1>
-          <p className="brand-copy">Twenty-five generations preserved in one editable family record.</p>
+          <p className="brand-copy">Twenty-two generations preserved in one editable family record.</p>
         </div>
       </div>
 

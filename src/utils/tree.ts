@@ -1,6 +1,6 @@
 import type { FamilyMember, Relationship, TreeMember } from "../types";
 
-const relationships: Relationship[] = ["Direct Line", "Brother", "Member"];
+const relationships: Relationship[] = ["Son", "Daughter", "Brother", "Sister"];
 
 export const buildTree = (members: FamilyMember[]): TreeMember[] => {
   const map = new Map<string, TreeMember>();
@@ -118,7 +118,6 @@ export const validateMembers = (value: unknown): FamilyMember[] => {
       notes: typeof raw.notes === "string" ? raw.notes : "",
       birth: typeof raw.birth === "string" ? raw.birth : "",
       death: typeof raw.death === "string" ? raw.death : "",
-      image: typeof raw.image === "string" ? raw.image : "",
     };
   });
 

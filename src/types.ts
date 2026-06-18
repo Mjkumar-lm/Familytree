@@ -1,4 +1,4 @@
-export type Relationship = "Direct Line" | "Brother" | "Member";
+export type Relationship = "Son" | "Daughter" | "Brother" | "Sister";
 
 export interface FamilyMember {
   id: string;
@@ -9,7 +9,6 @@ export interface FamilyMember {
   notes: string;
   birth: string;
   death: string;
-  image: string;
 }
 
 export interface TreeMember extends FamilyMember {
@@ -23,5 +22,4 @@ export interface MemberDraft {
   notes: string;
   birth: string;
   death: string;
-  image: string;
 }

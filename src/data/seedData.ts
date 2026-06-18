@@ -15,53 +15,85 @@ const member = (
   notes: "",
   birth: "",
   death: "",
-  image: "",
 });
 
 export const seedMembers: FamilyMember[] = [
-  member("swar-ji", "Swar Ji", 1, "Direct Line", null),
-  member("jhary-dev", "Jhary Dev", 2, "Direct Line", "swar-ji"),
-  member("jhag-roop", "Jhag Roop", 3, "Direct Line", "jhary-dev"),
-  member("himaat-singh", "Himaat Singh", 4, "Direct Line", "jhag-roop"),
-  member("lalu-ram", "Lalu Ram", 5, "Direct Line", "himaat-singh"),
-  member("radhu", "Radhu", 6, "Direct Line", "lalu-ram"),
-  member("ghasa-ram", "Ghasa Ram", 7, "Direct Line", "radhu"),
-  member("ram", "Ram", 8, "Direct Line", "ghasa-ram"),
-  member("radhe-shyam", "Radhe Shyam", 8, "Brother", "ghasa-ram"),
-  member("kallu-ram", "Kallu Ram", 9, "Direct Line", "ram"),
-  member("pohkur-ram", "Pohkur Ram", 10, "Direct Line", "kallu-ram"),
-  member("bhifa-ram", "Bhifa Ram", 11, "Direct Line", "pohkur-ram"),
-  member("ladhu-ram", "Ladhu Ram", 12, "Direct Line", "bhifa-ram"),
-  member("chokha-ram", "Chokha Ram", 12, "Brother", "bhifa-ram"),
-  member("mangal-ram", "Mangal Ram", 13, "Direct Line", "ladhu-ram"),
-  member("bisha-ram", "Bisha Ram", 13, "Brother", "ladhu-ram"),
-  member("khem-chand-14", "Khem Chand", 14, "Direct Line", "mangal-ram"),
-  member("harji-ram", "Harji Ram", 14, "Brother", "mangal-ram"),
-  member("pholad-ram", "Pholad Ram", 14, "Brother", "mangal-ram"),
-  member("barvatavar", "Barvatavar", 15, "Direct Line", "khem-chand-14"),
-  member("tara-chand-16", "Tara Chand", 16, "Direct Line", "barvatavar"),
-  member("bala-ram", "Bala Ram", 17, "Direct Line", "tara-chand-16"),
-  member("man-chand", "Man Chand", 17, "Brother", "tara-chand-16"),
-  member("sadhu-ram", "Sadhu Ram", 17, "Brother", "tara-chand-16"),
-  member("chet-ram", "Chet Ram", 18, "Direct Line", "bala-ram"),
-  member("kishan-sahay", "Kishan Sahay", 19, "Direct Line", "chet-ram"),
-  member("shadi-ram", "Shadi Ram", 19, "Brother", "chet-ram"),
-  member("khem-chand-20", "Khem Chand", 20, "Direct Line", "kishan-sahay"),
-  member("paras-ram", "Paras Ram", 20, "Brother", "kishan-sahay"),
-  member("mohan-singh", "Mohan Singh", 20, "Brother", "kishan-sahay"),
-  member("tota-ram", "Tota Ram", 21, "Direct Line", "khem-chand-20"),
-  member("prabhu-dayal", "Prabhu Dayal", 21, "Brother", "khem-chand-20"),
-  member("maku-ram", "Maku Ram", 21, "Brother", "khem-chand-20"),
-  member("goka", "Goka", 21, "Brother", "khem-chand-20"),
-  member("hera-lal", "Hera Lal", 22, "Direct Line", "tota-ram"),
-  member("jay-dayal", "Jay Dayal", 22, "Brother", "tota-ram"),
-  member("shyam-shundar", "Shyam Shundar", 23, "Direct Line", "hera-lal"),
-  member("tara-chand-23", "Tara Chand", 23, "Brother", "hera-lal"),
-  member("shravan-kumar", "Shravan Kumar", 24, "Direct Line", "shyam-shundar"),
-  member("ratan-lal", "Ratan Lal", 24, "Brother", "shyam-shundar"),
-  member("sandeep", "Sandeep", 25, "Direct Line", "shravan-kumar"),
-  member("jitender", "Jitender", 25, "Member", "shravan-kumar"),
-  member("aman", "Aman", 25, "Member", "shravan-kumar"),
-  member("gaurav", "Gaurav", 25, "Member", "shravan-kumar"),
-  member("neeraj", "Neeraj", 25, "Member", "shravan-kumar"),
+  // G1 — Root
+  member("jhanj-dev",     "Jhanj Dev",     1,  "Son",     null),
+
+  // G2
+  member("jagroop",       "Jagroop",       2,  "Son",     "jhanj-dev"),
+
+  // G3
+  member("himmat-singh",  "Himmat Singh",  3,  "Son",     "jagroop"),
+
+  // G4
+  member("lalu-ram",      "Lalu Ram",      4,  "Son",     "himmat-singh"),
+
+  // G5
+  member("radhu",         "Radhu",         5,  "Son",     "lalu-ram"),
+
+  // G6
+  member("sheoram",       "Sheoram",       6,  "Son",     "radhu"),
+
+  // G7
+  member("ghisa-ram",     "Ghisa Ram",     7,  "Son",     "sheoram"),
+
+  // G8
+  member("pat-ram",       "Pat Ram",       8,  "Son",     "ghisa-ram"),
+
+  // G9
+  member("kallu-ram",     "Kallu Ram",     9,  "Son",     "pat-ram"),
+
+  // G10
+  member("pohkar-ram",    "Pohkar Ram",    10, "Son",     "kallu-ram"),
+
+  // G11
+  member("bhipha-ram",    "Bhipha Ram",    11, "Son",     "pohkar-ram"),
+
+  // G12
+  member("ladhu-ram",     "Ladhu Ram",     12, "Son",     "bhipha-ram"),
+
+  // G13
+  member("mangla-ram",    "Mangla Ram",    13, "Son",     "ladhu-ram"),
+  member("bishna-ram",    "Bishna Ram",    13, "Brother", "ladhu-ram"),
+
+  // G14
+  member("khem-chand-14", "Khem Chand",   14, "Son",     "mangla-ram"),
+  member("harji-ram",     "Harji Ram",     14, "Brother", "mangla-ram"),
+  member("pahalad-ram",   "Pahalad Ram",   14, "Brother", "mangla-ram"),
+
+  // G15
+  member("bakhtawar",     "Bakhtawar",     15, "Son",     "khem-chand-14"),
+
+  // G16
+  member("tara-chand-16", "Tara Chand",   16, "Son",     "bakhtawar"),
+
+  // G17
+  member("bala-ram",      "Bala Ram",      17, "Son",     "tara-chand-16"),
+  member("mamchand",      "Mamchand",      17, "Brother", "tara-chand-16"),
+  member("sedu-ram",      "Sedu Ram",      17, "Brother", "tara-chand-16"),
+
+  // G18
+  member("chet-ram",      "Chet Ram",      18, "Son",     "bala-ram"),
+
+  // G19
+  member("kishan-sahey",  "Kishan Sahey",  19, "Son",     "chet-ram"),
+  member("shadi-ram",     "Shadi Ram",     19, "Brother", "chet-ram"),
+
+  // G20
+  member("khemchand-20",  "Khemchand",     20, "Son",     "kishan-sahey"),
+  member("paras-ram",     "Paras Ram",     20, "Brother", "kishan-sahey"),
+  member("mohan-singh",   "Mohan Singh",   20, "Brother", "kishan-sahey"),
+
+  // G21
+  member("tota-ram",      "Tota Ram",      21, "Son",     "khemchand-20"),
+  member("prabhu-dayal",  "Prabhu Dayal",  21, "Brother", "khemchand-20"),
+  member("madu-ram",      "Madu Ram",      21, "Brother", "khemchand-20"),
+  member("gopal",         "Gopal",         21, "Brother", "khemchand-20"),
+
+  // G22
+  member("heera-lal",     "Heera Lal",     22, "Son",     "tota-ram"),
+  member("jai-dayal",     "Jai Dayal",     22, "Brother", "tota-ram"),
+  member("parvati-devi",  "Parvati Devi",  22, "Sister",  "tota-ram"),
 ];
