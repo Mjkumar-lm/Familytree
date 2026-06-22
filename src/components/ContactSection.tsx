@@ -5,14 +5,32 @@ export const ContactSection = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !message.trim()) return;
-    const body = encodeURIComponent(`From: ${name} <${email}>\n\n${message}`);
-    window.location.href = `mailto:mkkeshwania@gmail.com?subject=Family%20Archive%20Inquiry&body=${body}`;
-    setSent(true);
+    setStatus("sending");
+    try {
+      const res = await fetch("https://formsubmit.co/ajax/mkkeshwania@gmail.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          message,
+          _subject: "Family Archive Inquiry",
+          _template: "table",
+        }),
+      });
+      if (!res.ok) throw new Error("send failed");
+      setStatus("sent");
+      setName("");
+      setEmail("");
+      setMessage("");
+    } catch {
+      setStatus("error");
+    }
   };
 
   return (
@@ -55,7 +73,7 @@ export const ContactSection = () => {
               <span className="contact-icon" aria-hidden="true"><MapPin size={18} /></span>
               <div>
                 <strong>Ancestral Home</strong>
-                <span>Keshwani Family Trust, India</span>
+                <span>158, Shakti Nagar, Rewari, Haryana</span>
               </div>
             </div>
           </div>
@@ -67,7 +85,7 @@ export const ContactSection = () => {
                 className="simple-input"
                 type="text"
                 value={name}
-                onChange={(e) => { setName(e.target.value); setSent(false); }}
+                onChange={(e) => { setName(e.target.value); setStatus("idle"); }}
                 required
               />
             </label>
@@ -77,7 +95,7 @@ export const ContactSection = () => {
                 className="simple-input"
                 type="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setSent(false); }}
+                onChange={(e) => { setEmail(e.target.value); setStatus("idle"); }}
                 required
               />
             </label>
@@ -87,14 +105,15 @@ export const ContactSection = () => {
                 className="simple-input contact-textarea"
                 rows={4}
                 value={message}
-                onChange={(e) => { setMessage(e.target.value); setSent(false); }}
+                onChange={(e) => { setMessage(e.target.value); setStatus("idle"); }}
                 required
               />
             </label>
-            <button type="submit" className="primary-button contact-submit">
-              <Send size={15} /> Send Message
+            <button type="submit" className="primary-button contact-submit" disabled={status === "sending"}>
+              <Send size={15} /> {status === "sending" ? "Sending…" : "Send Message"}
             </button>
-            {sent && <p className="contact-sent">Opening your mail client…</p>}
+            {status === "sent" && <p className="contact-sent">Message sent — thank you!</p>}
+            {status === "error" && <p className="contact-sent">Could not send. Please try again.</p>}
           </form>
         </div>
 

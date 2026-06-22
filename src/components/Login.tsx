@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogIn, ShieldCheck, X } from "lucide-react";
+import { LogIn, X } from "lucide-react";
 
 export type Role = "admin" | "user";
 
@@ -13,7 +13,7 @@ interface LoginProps {
   onClose?: () => void;
 }
 
-const ADMIN = { username: "admin", password: "admin", display: "Administrator" };
+const ADMIN = { username: "Manoj", password: "Manjo@721777", display: "Manoj" };
 
 export const Login = ({ onLogin, onClose }: LoginProps) => {
   const [username, setUsername] = useState("");
@@ -27,12 +27,6 @@ export const Login = ({ onLogin, onClose }: LoginProps) => {
       return;
     }
     onLogin({ name: ADMIN.display, role: "admin" });
-  };
-
-  const fillDemo = () => {
-    setUsername(ADMIN.username);
-    setPassword(ADMIN.password);
-    setError("");
   };
 
   return (
@@ -62,7 +56,6 @@ export const Login = ({ onLogin, onClose }: LoginProps) => {
               autoComplete="username"
               value={username}
               onChange={(e) => { setUsername(e.target.value); setError(""); }}
-              placeholder="admin"
               autoFocus
             />
           </label>
@@ -85,16 +78,6 @@ export const Login = ({ onLogin, onClose }: LoginProps) => {
             <LogIn size={16} /> Sign in
           </button>
         </form>
-
-        <div className="login-divider"><span>Demo</span></div>
-
-        <button type="button" className="login-demo login-demo--single" onClick={fillDemo}>
-          <ShieldCheck size={16} />
-          <div>
-            <strong>Admin</strong>
-            <span>admin / admin</span>
-          </div>
-        </button>
       </section>
     </div>
   );

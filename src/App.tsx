@@ -374,7 +374,7 @@ export const App = () => {
 
           <p className="about-body" data-reveal style={{ transitionDelay: "0.4s" }}>
             The Keshwani family lineage spans <strong>twenty-two generations</strong>, tracing its roots back to the
-            revered ancestor <strong>Swar Ji</strong>. This living record preserves the names, relationships, and
+            revered ancestor <strong>Jhanj Dev</strong>. This living record preserves the names, relationships, and
             connections of each generation — from the earliest known forebears to the present day.
           </p>
           <p className="about-body" data-reveal style={{ transitionDelay: "0.55s" }}>
