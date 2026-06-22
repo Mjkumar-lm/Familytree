@@ -22,7 +22,7 @@ export const Login = ({ onLogin, onClose }: LoginProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim().toLowerCase() !== ADMIN.username || password !== ADMIN.password) {
+    if (username.trim() !== ADMIN.username || password !== ADMIN.password) {
       setError("Invalid admin credentials.");
       return;
     }
