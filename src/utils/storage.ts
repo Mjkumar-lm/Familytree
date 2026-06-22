@@ -81,6 +81,7 @@ export const loadMembersFromCloud = async (): Promise<FamilyMember[] | null> => 
   }
   const members = (data as Row[]).map(fromRow);
   lastSyncedIds = new Set(members.map((m) => m.id));
+  writeLocal(members);
   return members;
 };
 
