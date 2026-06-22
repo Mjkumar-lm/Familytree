@@ -1,13 +1,16 @@
 -- ============================================================
--- Keshwani Family Tree — Supabase / PostgreSQL Schema
+-- Keshwani Family Tree — Supabase / PostgreSQL Schema + Seed
 -- ============================================================
--- Single table `members` stores the entire lineage. Generation
--- depth is auto-derived from parent_id. IDs are text to match
--- the slugged ids the app generates (see src/utils/tree.ts).
+-- Run this entire file once in the Supabase SQL Editor.
+-- Idempotent: safe to re-run.
+--
+-- After running, set these env vars in the app (.env at repo root):
+--   VITE_SUPABASE_URL=<your project url>
+--   VITE_SUPABASE_ANON_KEY=<your project anon key>
 -- ============================================================
 
 -- ------------------------------------------------------------
--- Relationship enum (matches src/types.ts)
+-- Relationship enum
 -- ------------------------------------------------------------
 do $$
 begin
@@ -31,7 +34,6 @@ create table if not exists members (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
 
-  -- Root member (parent_id null) must be a Son (the trunk root).
   constraint chk_root_must_be_son
     check (parent_id is not null or relationship = 'Son')
 );
@@ -40,18 +42,31 @@ create index if not exists idx_members_parent_id    on members(parent_id);
 create index if not exists idx_members_generation   on members(generation);
 create index if not exists idx_members_relationship on members(relationship);
 
--- One direct heir (Son or Daughter) per parent. Brothers/Sisters unlimited.
 create unique index if not exists uq_members_one_heir_per_parent
   on members(parent_id)
   where relationship in ('Son', 'Daughter') and parent_id is not null;
 
--- Only one root member.
 create unique index if not exists uq_members_single_root
   on members((parent_id is null))
   where parent_id is null;
 
 -- ------------------------------------------------------------
--- Auto-derive generation from parent (DB is source of truth)
+-- contact_messages table (from the Contact Us form)
+-- ------------------------------------------------------------
+create table if not exists contact_messages (
+  id            uuid primary key default gen_random_uuid(),
+  name          text not null check (length(trim(name)) > 0),
+  email         text not null check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
+  message       text not null check (length(trim(message)) > 0),
+  created_at    timestamptz not null default now(),
+  handled       boolean not null default false
+);
+
+create index if not exists idx_contact_messages_created_at on contact_messages(created_at desc);
+create index if not exists idx_contact_messages_handled    on contact_messages(handled) where handled = false;
+
+-- ------------------------------------------------------------
+-- Auto-derive generation from parent
 -- ------------------------------------------------------------
 create or replace function set_member_generation()
 returns trigger as $$
@@ -123,7 +138,6 @@ create trigger trg_cascade_generation
 -- Helper views
 -- ============================================================
 
--- Direct lineage (trunk) — Son/Daughter chain from root downward
 create or replace view v_direct_lineage as
 with recursive lineage as (
   select id, name, generation, parent_id, 1 as depth
@@ -137,7 +151,6 @@ with recursive lineage as (
 )
 select * from lineage order by depth;
 
--- Counts per generation
 create or replace view v_generation_summary as
 select
   generation,
@@ -154,7 +167,6 @@ order by generation;
 -- Helper functions
 -- ============================================================
 
--- All descendants of a member (used for delete preview)
 create or replace function descendants_of(root text)
 returns table(id text, name text, generation int, relationship relation_type) as $$
   with recursive tree as (
@@ -169,7 +181,6 @@ returns table(id text, name text, generation int, relationship relation_type) as
   select * from tree order by generation;
 $$ language sql stable;
 
--- Ancestors from root → given member
 create or replace function ancestors_of(leaf text)
 returns table(id text, name text, generation int, relationship relation_type) as $$
   with recursive chain as (
@@ -187,15 +198,18 @@ $$ language sql stable;
 -- ============================================================
 -- Row-Level Security (Supabase)
 -- ============================================================
--- Supabase enables RLS by default. Pick ONE of the two policy
--- sets below depending on whether the app uses Supabase Auth.
---
--- Option A — Public / no auth (single-owner site, anon access)
--- ------------------------------------------------------------
-alter table members enable row level security;
+-- The app uses the anon key. Members are world-readable; only the
+-- admin role (logged in inside the app) writes. RLS here allows
+-- anon writes since admin auth currently lives in the React app;
+-- swap to JWT-based policies if you wire Supabase Auth later.
 
-drop policy if exists members_anon_read   on members;
-drop policy if exists members_anon_write  on members;
+alter table members enable row level security;
+alter table contact_messages enable row level security;
+
+drop policy if exists members_anon_read         on members;
+drop policy if exists members_anon_write        on members;
+drop policy if exists contact_anon_insert       on contact_messages;
+drop policy if exists contact_admin_read        on contact_messages;
 
 create policy members_anon_read on members
   for select using (true);
@@ -205,19 +219,77 @@ create policy members_anon_write on members
   using (true)
   with check (true);
 
--- Option B — Per-user (uncomment, add user_id column first):
--- ------------------------------------------------------------
--- alter table members add column if not exists user_id uuid
---   default auth.uid() references auth.users(id) on delete cascade;
--- create index if not exists idx_members_user_id on members(user_id);
---
--- drop policy if exists members_owner_read  on members;
--- drop policy if exists members_owner_write on members;
---
--- create policy members_owner_read on members
---   for select using (auth.uid() = user_id);
---
--- create policy members_owner_write on members
---   for all
---   using (auth.uid() = user_id)
---   with check (auth.uid() = user_id);
+-- Anyone can submit a contact message; reads are open too so an
+-- admin tool (e.g. Supabase dashboard) can fetch them.
+create policy contact_anon_insert on contact_messages
+  for insert with check (true);
+
+create policy contact_admin_read on contact_messages
+  for select using (true);
+
+-- ============================================================
+-- Seed: 22-generation Keshwani lineage (35 members)
+-- ============================================================
+-- Inserted in generation order so each parent_id exists before
+-- its children. The trigger overwrites the generation column,
+-- but we still pass a value because the column is NOT NULL.
+
+insert into members (id, name, relationship, parent_id, generation) values
+  -- G1
+  ('jhanj-dev',     'Jhanj Dev',     'Son',     null,             1),
+  -- G2
+  ('jagroop',       'Jagroop',       'Son',     'jhanj-dev',      2),
+  -- G3
+  ('himmat-singh',  'Himmat Singh',  'Son',     'jagroop',        3),
+  -- G4
+  ('lalu-ram',      'Lalu Ram',      'Son',     'himmat-singh',   4),
+  -- G5
+  ('radhu',         'Radhu',         'Son',     'lalu-ram',       5),
+  -- G6
+  ('sheoram',       'Sheoram',       'Son',     'radhu',          6),
+  -- G7
+  ('ghisa-ram',     'Ghisa Ram',     'Son',     'sheoram',        7),
+  -- G8
+  ('pat-ram',       'Pat Ram',       'Son',     'ghisa-ram',      8),
+  -- G9
+  ('kallu-ram',     'Kallu Ram',     'Son',     'pat-ram',        9),
+  -- G10
+  ('pohkar-ram',    'Pohkar Ram',    'Son',     'kallu-ram',      10),
+  -- G11
+  ('bhipha-ram',    'Bhipha Ram',    'Son',     'pohkar-ram',     11),
+  -- G12
+  ('ladhu-ram',     'Ladhu Ram',     'Son',     'bhipha-ram',     12),
+  -- G13
+  ('mangla-ram',    'Mangla Ram',    'Son',     'ladhu-ram',      13),
+  ('bishna-ram',    'Bishna Ram',    'Brother', 'ladhu-ram',      13),
+  -- G14
+  ('khem-chand-14', 'Khem Chand',    'Son',     'mangla-ram',     14),
+  ('harji-ram',     'Harji Ram',     'Brother', 'mangla-ram',     14),
+  ('pahalad-ram',   'Pahalad Ram',   'Brother', 'mangla-ram',     14),
+  -- G15
+  ('bakhtawar',     'Bakhtawar',     'Son',     'khem-chand-14',  15),
+  -- G16
+  ('tara-chand-16', 'Tara Chand',    'Son',     'bakhtawar',      16),
+  -- G17
+  ('bala-ram',      'Bala Ram',      'Son',     'tara-chand-16',  17),
+  ('mamchand',      'Mamchand',      'Brother', 'tara-chand-16',  17),
+  ('sedu-ram',      'Sedu Ram',      'Brother', 'tara-chand-16',  17),
+  -- G18
+  ('chet-ram',      'Chet Ram',      'Son',     'bala-ram',       18),
+  -- G19
+  ('kishan-sahey',  'Kishan Sahey',  'Son',     'chet-ram',       19),
+  ('shadi-ram',     'Shadi Ram',     'Brother', 'chet-ram',       19),
+  -- G20
+  ('khemchand-20',  'Khemchand',     'Son',     'kishan-sahey',   20),
+  ('paras-ram',     'Paras Ram',     'Brother', 'kishan-sahey',   20),
+  ('mohan-singh',   'Mohan Singh',   'Brother', 'kishan-sahey',   20),
+  -- G21
+  ('tota-ram',      'Tota Ram',      'Son',     'khemchand-20',   21),
+  ('prabhu-dayal',  'Prabhu Dayal',  'Brother', 'khemchand-20',   21),
+  ('madu-ram',      'Madu Ram',      'Brother', 'khemchand-20',   21),
+  ('gopal',         'Gopal',         'Brother', 'khemchand-20',   21),
+  -- G22
+  ('heera-lal',     'Heera Lal',     'Son',     'tota-ram',       22),
+  ('jai-dayal',     'Jai Dayal',     'Brother', 'tota-ram',       22),
+  ('parvati-devi',  'Parvati Devi',  'Sister',  'tota-ram',       22)
+on conflict (id) do nothing;

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, Split } from "lucide-react";
 import type { TreeMember } from "../types";
 import { getInitials } from "../utils/tree";
 
@@ -8,7 +8,7 @@ interface MemberNodeProps {
   isCollapsed: boolean;
   depth: number;
   onSelect: (id: string) => void;
-  onToggleCollapse: (id: string) => void;
+  onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
   hideCollapseButton?: boolean;
 }
 
@@ -25,7 +25,7 @@ export const MemberNode = ({
   const depthTone = depth % 5;
 
   return (
-    <div className={`member-node tone-${depthTone} ${isSelected ? "selected" : ""}`}>
+    <div id={`node-${member.id}`} className={`member-node tone-${depthTone} ${isSelected ? "selected" : ""}`}>
       <button type="button" className="plaque-button" onClick={() => onSelect(member.id)}>
         <div className="plaque-grain" aria-hidden="true" />
         <div className="plaque-inner">
@@ -45,15 +45,17 @@ export const MemberNode = ({
       {!hideCollapseButton && hasChildren && (
         <button
           type="button"
-          className="tree-bud"
+          className={`tree-bud ${isCollapsed ? "tree-bud--collapsed" : "tree-bud--expanded"}`}
           aria-label={isCollapsed ? `Expand ${member.name}` : `Collapse ${member.name}`}
-          onClick={() => onToggleCollapse(member.id)}
+          aria-expanded={!isCollapsed}
+          onClick={() => onToggleCollapse(member.id, isCollapsed)}
         >
-          {isCollapsed ? (
+          <span className="tree-bud-icon tree-bud-icon--closed" aria-hidden="true">
             <ChevronDown size={16} color="#fff" />
-          ) : (
-            <ChevronUp size={16} color="#fff" />
-          )}
+          </span>
+          <span className="tree-bud-icon tree-bud-icon--open" aria-hidden="true">
+            <Split size={16} color="#fff" />
+          </span>
         </button>
       )}
     </div>

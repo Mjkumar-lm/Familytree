@@ -107,31 +107,9 @@ export const usePanZoom = ({
         e.preventDefault();
         const delta = Math.exp(-e.deltaY * zoomSpeed);
         zoomAt(e.clientX, e.clientY, delta);
-        return;
       }
-
-      const dx = e.shiftKey ? e.deltaY : e.deltaX;
-      const dy = e.shiftKey ? 0 : e.deltaY;
-
-      // Where would this wheel gesture pan to? For wheel navigation we cap the top at 0
-      // so the content can't be pushed below its natural top — that keeps an "at the top"
-      // limit symmetric with "at the bottom" for clean scroll chaining.
-      const clamped = clampPan(transform.x - dx, transform.y - dy, transform.scale);
-      const nextY = Math.min(0, clamped.y);
-
-      const movedX = Math.abs(clamped.x - transform.x) > 0.5;
-      const movedY = Math.abs(nextY - transform.y) > 0.5;
-
-      if (movedX || movedY) {
-        // Still room to pan inside the tree — consume the event.
-        e.preventDefault();
-        setTransform((t) => {
-          const c = clampPan(t.x - dx, t.y - dy, t.scale);
-          return { ...t, x: c.x, y: Math.min(0, c.y) };
-        });
-      }
-      // Otherwise the tree is at its scroll limit in this direction: do NOT preventDefault,
-      // letting the wheel event bubble so the main page scrolls (scroll chaining).
+      // If no modifier key, do nothing! This allows standard mouse wheels 
+      // and trackpad two-finger scrolls to scroll the entire web page natively.
     };
 
     const onMouseDown = (e: MouseEvent) => {
@@ -251,6 +229,49 @@ export const usePanZoom = ({
     return () => ro.disconnect();
   }, [clampPan]);
 
+  const panToElement = useCallback(
+    (elementId: string) => {
+      // Use a short delay so the DOM has time to render the new nodes and ResizeObserver updates clampPan bounds
+      setTimeout(() => {
+        const container = containerRef.current;
+        const content = contentRef.current;
+        if (!container || !content) return;
+
+        const el = document.getElementById(elementId);
+        if (!el) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+
+        content.style.transition = "transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)";
+
+        setTransform((t) => {
+          // Current center of the element on screen
+          const elCenterX = elRect.left + elRect.width / 2;
+          // Target horizontal center of the viewport
+          const targetX = containerRect.left + containerRect.width / 2;
+          // How much we need to shift the screen horizontally to align them
+          const deltaX = targetX - elCenterX;
+
+          // Target vertical position (20% down from the top of the viewport)
+          const elTop = elRect.top;
+          const targetY = containerRect.top + containerRect.height * 0.2;
+          // How much we need to shift vertically
+          const deltaY = targetY - elTop;
+
+          return { scale: t.scale, ...clampPan(t.x + deltaX, t.y + deltaY, t.scale) };
+        });
+
+        setTimeout(() => {
+          if (contentRef.current) {
+            contentRef.current.style.transition = "";
+          }
+        }, 500);
+      }, 60);
+    },
+    [clampPan],
+  );
+
   return {
     containerRef,
     contentRef,
@@ -259,5 +280,6 @@ export const usePanZoom = ({
     zoomIn,
     zoomOut,
     reset,
+    panToElement,
   };
 };

@@ -1,7 +1,9 @@
-import { ChevronsDownUp, ChevronsUpDown, Maximize2, Minus, Plus } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronsDownUp, ChevronsUpDown, Download, Maximize2, Minus, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { usePanZoom } from "../hooks/usePanZoom";
 import type { TreeMember } from "../types";
+import { exportFamilyTreeAsPdf } from "../utils/exportPdf";
 import { MemberNode } from "./MemberNode";
 
 interface FamilyTreeProps {
@@ -9,7 +11,7 @@ interface FamilyTreeProps {
   selectedId: string | null;
   expandedGeneration: number;
   onSelect: (id: string) => void;
-  onToggleCollapse: (id: string) => void;
+  onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
   onSetExpandedGeneration: (n: number) => void;
 }
 
@@ -34,19 +36,57 @@ export const FamilyTree = ({
   onToggleCollapse,
   onSetExpandedGeneration,
 }: FamilyTreeProps) => {
-  const { containerRef, contentRef, transform, isPanning, zoomIn, zoomOut, reset } = usePanZoom({
+  const { containerRef, contentRef, transform, isPanning, zoomIn, zoomOut, reset, panToElement } = usePanZoom({
     minScale: 0.3,
     maxScale: 2.5,
   });
 
   const [expandedSiblings, setExpandedSiblings] = useState<Set<string>>(new Set());
-  const toggleSibling = (id: string) =>
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (downloading) return;
+    setDownloading(true);
+
+    const prevExpandedGen = expandedGeneration;
+    const prevSiblings = expandedSiblings;
+
+    try {
+      // Force the full tree open so the PDF always contains the entire lineage.
+      onSetExpandedGeneration(maxGeneration);
+      setExpandedSiblings(new Set(allBranchableIds));
+      reset();
+      // Wait for layout + framer-motion enter animation (~350ms) + buffer.
+      await new Promise((r) => setTimeout(r, 800));
+      await exportFamilyTreeAsPdf("Keshwani Family Tree");
+    } catch (err) {
+      console.error(err);
+      alert("Could not generate PDF. Please try again.");
+    } finally {
+      onSetExpandedGeneration(prevExpandedGen);
+      setExpandedSiblings(prevSiblings);
+      setDownloading(false);
+    }
+  };
+
+  const handleToggleCollapse = (id: string, wasCollapsed: boolean) => {
+    onToggleCollapse(id, wasCollapsed);
+    if (wasCollapsed) {
+      panToElement(`node-${id}`);
+    }
+  };
+
+  const toggleSibling = (id: string, wasCollapsed: boolean) => {
     setExpandedSiblings((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (wasCollapsed) next.add(id);
+      else next.delete(id);
       return next;
     });
+    if (wasCollapsed) {
+      panToElement(`node-${id}`);
+    }
+  };
 
   // Max generation and all members with children — used by the Expand All button
   const { maxGeneration, allBranchableIds } = useMemo(() => {
@@ -192,16 +232,29 @@ export const FamilyTree = ({
           <p className="eyebrow">The Direct Line</p>
           <h2>From Jhanj Dev to the present</h2>
         </div>
-        <button
-          type="button"
-          className="expand-all-btn"
-          onClick={handleToggleAll}
-          title={isFullyExpanded ? "Collapse whole tree" : "Expand whole tree"}
-          aria-label={isFullyExpanded ? "Collapse whole tree" : "Expand whole tree"}
-        >
-          {isFullyExpanded ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
-          <span>{isFullyExpanded ? "Collapse All" : "Expand All"}</span>
-        </button>
+        <div className="tree-title-actions">
+          <button
+            type="button"
+            className="download-pdf-btn"
+            onClick={handleDownloadPdf}
+            disabled={downloading}
+            title="Download family tree as PDF"
+            aria-label="Download family tree as PDF"
+          >
+            <Download size={16} />
+            <span>{downloading ? "Preparing…" : "Download PDF"}</span>
+          </button>
+          <button
+            type="button"
+            className="expand-all-btn"
+            onClick={handleToggleAll}
+            title={isFullyExpanded ? "Collapse whole tree" : "Expand whole tree"}
+            aria-label={isFullyExpanded ? "Collapse whole tree" : "Expand whole tree"}
+          >
+            {isFullyExpanded ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
+            <span>{isFullyExpanded ? "Collapse All" : "Expand All"}</span>
+          </button>
+        </div>
       </div>
 
       <div className="zoom-controls" role="group" aria-label="Zoom controls">
@@ -230,13 +283,11 @@ export const FamilyTree = ({
         >
           <div className="organic-tree">
             {(() => {
-              // Render any row that has either (a) trunk visible per expandedGeneration
-              // or (b) at least one visible descendant whose ancestors are all expanded.
-              // Direct siblings only count if their trunk row is also visible.
-              const isVisibleAt = (m: SideMember, rowIdx: number) =>
-                m.kind === "sibling"
-                  ? rowIdx < expandedGeneration
-                  : m.ancestorChain.every((id) => expandedSiblings.has(id));
+              const isVisibleAt = (m: SideMember, rowIdx: number) => {
+                if (rowIdx >= expandedGeneration) return false;
+                if (m.kind === "sibling") return true;
+                return m.ancestorChain.every((id) => expandedSiblings.has(id));
+              };
               let lastSideRow = -1;
               for (let i = 0; i < generationsList.length; i++) {
                 const r = generationsList[i];
@@ -248,24 +299,40 @@ export const FamilyTree = ({
                 }
               }
               const renderUpTo = Math.max(expandedGeneration, lastSideRow + 1);
-              return generationsList.slice(0, renderUpTo).map((gen, index) => {
-                const isLastGen = index === generationsList.length - 1;
-                const showTrunk = index < expandedGeneration;
-                return (
-                  <GenerationRow
-                    key={gen.generation}
-                    row={gen}
-                    index={index}
-                    hasMoreGenerations={!isLastGen}
-                    showTrunk={showTrunk}
-                    selectedId={selectedId}
-                    expandedSiblings={expandedSiblings}
-                    onSelect={onSelect}
-                    onToggleCollapse={onToggleCollapse}
-                    onToggleSibling={toggleSibling}
-                  />
-                );
-              });
+              const rows = generationsList.slice(0, renderUpTo);
+              return (
+                <AnimatePresence initial={false}>
+                  {rows.map((gen, index) => {
+                    const isLastGen = index === generationsList.length - 1;
+                    const showTrunk = index < expandedGeneration;
+                    const trunkChildVisible = index + 1 < expandedGeneration;
+                    return (
+                      <motion.div
+                        key={gen.generation}
+                        className="tree-gen-anim"
+                        initial={{ opacity: 0, y: -22, scaleY: 0.85 }}
+                        animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                        exit={{ opacity: 0, y: -16, scaleY: 0.8, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } }}
+                        transition={{ duration: 0.20, ease: [0.4, 0, 0.2, 1] }}
+                        style={{ transformOrigin: "top center", zIndex: 100 - index }}
+                      >
+                        <GenerationRow
+                          row={gen}
+                          index={index}
+                          hasMoreGenerations={!isLastGen}
+                          showTrunk={showTrunk}
+                          trunkChildVisible={trunkChildVisible}
+                          selectedId={selectedId}
+                          expandedSiblings={expandedSiblings}
+                          onSelect={onSelect}
+                          onToggleCollapse={handleToggleCollapse}
+                          onToggleSibling={toggleSibling}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              );
             })()}
           </div>
         </div>
@@ -305,11 +372,12 @@ interface GenerationRowProps {
   index: number;
   hasMoreGenerations: boolean;
   showTrunk: boolean;
+  trunkChildVisible: boolean;
   selectedId: string | null;
   expandedSiblings: Set<string>;
   onSelect: (id: string) => void;
-  onToggleCollapse: (id: string) => void;
-  onToggleSibling: (id: string) => void;
+  onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onToggleSibling: (id: string, wasCollapsed: boolean) => void;
 }
 
 const GenerationRow = ({
@@ -317,6 +385,7 @@ const GenerationRow = ({
   index,
   hasMoreGenerations,
   showTrunk,
+  trunkChildVisible,
   selectedId,
   expandedSiblings,
   onSelect,
@@ -344,14 +413,15 @@ const GenerationRow = ({
     >
       {index > 0 && showTrunk && (
         <div className="branch-connector">
-          <svg className="branch-svg" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-            <line x1="20" y1="0" x2="20" y2="40" stroke="var(--line)" strokeWidth="2" />
+          <svg className="branch-svg" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
+            <line x1="20" y1="-10" x2="20" y2="40" stroke="var(--line)" strokeWidth="2" />
           </svg>
         </div>
       )}
 
       <div className="trunk-leaf-label">
         <svg className="leaf-label-svg" viewBox="0 0 140 32" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="2" width="140" height="28" rx="14" fill="var(--paper-solid)" />
           <rect x="0" y="2" width="140" height="28" rx="14" fill="var(--gold-soft)" stroke="var(--gold)" strokeWidth="1" />
           <text x="70" y="20" textAnchor="middle" fontSize="10" fontFamily="Cinzel, serif" fontWeight="700" fill="var(--ink-light)" letterSpacing="1.2">
             GENERATION {row.generation}
@@ -392,7 +462,7 @@ const GenerationRow = ({
           <div className="trunk-node">
             <MemberNode
               member={primary}
-              isCollapsed={true}
+              isCollapsed={!trunkChildVisible}
               isSelected={selectedId === primary.id}
               depth={primary.generation}
               onSelect={onSelect}
@@ -442,8 +512,8 @@ interface SideMemberCellProps {
   selectedId: string | null;
   expandedSiblings: Set<string>;
   onSelect: (id: string) => void;
-  onToggleCollapse: (id: string) => void;
-  onToggleSibling: (id: string) => void;
+  onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onToggleSibling: (id: string, wasCollapsed: boolean) => void;
 }
 
 const SideMemberCell = ({
@@ -472,8 +542,8 @@ const SideMemberCell = ({
   );
 
   const curve = (
-    <svg className="limb-curve" viewBox="0 0 80 40" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <line x1="0" y1="20" x2="80" y2="20" stroke="var(--line)" strokeWidth="2" />
+    <svg className="limb-curve" viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+      <line x1="-10" y1="20" x2="170" y2="20" stroke="var(--line)" strokeWidth="2" />
     </svg>
   );
 
@@ -500,8 +570,8 @@ interface SiblingClusterProps {
   selectedId: string | null;
   expandedSiblings: Set<string>;
   onSelect: (id: string) => void;
-  onToggleCollapse: (id: string) => void;
-  onToggleSibling: (id: string) => void;
+  onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onToggleSibling: (id: string, wasCollapsed: boolean) => void;
 }
 
 // Renders descendants that share a parent: a single drop-line from the parent meets a

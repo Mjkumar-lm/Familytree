@@ -5,6 +5,7 @@ import { getInitials } from "../utils/tree";
 
 interface MemberDetailsProps {
   member: FamilyMember | null;
+  readOnly?: boolean;
   onSave: (id: string, draft: MemberDraft) => void;
   onAdd: (parentId: string, draft: MemberDraft) => void;
   onAddFather: (name: string) => void;
@@ -13,7 +14,7 @@ interface MemberDetailsProps {
 
 const RELATIONSHIP_OPTIONS: Relationship[] = ["Son", "Daughter"];
 
-export const MemberDetails = ({ member, onSave, onAdd, onAddFather, onDelete }: MemberDetailsProps) => {
+export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFather, onDelete }: MemberDetailsProps) => {
   const [newName, setNewName]           = useState("");
   const [showAdd, setShowAdd]           = useState(false);
   const [addName, setAddName]           = useState("");
@@ -100,6 +101,11 @@ export const MemberDetails = ({ member, onSave, onAdd, onAddFather, onDelete }: 
         </div>
       </div>
 
+      {readOnly && (
+        <p className="readonly-note">You are viewing the family archive in read-only mode.</p>
+      )}
+
+      {!readOnly && (<>
       {/* ── Change name ── */}
       <div className="panel-section-title"><span>Change Name</span></div>
       <div className="simple-field-row">
@@ -199,6 +205,7 @@ export const MemberDetails = ({ member, onSave, onAdd, onAddFather, onDelete }: 
           <Trash2 size={16} /> Delete {member.name}
         </button>
       </div>
+      </>)}
     </aside>
   );
 };

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { ContactSection } from "./components/ContactSection";
 import { CountUpStat } from "./components/CountUpStat";
 import { FamilyTree } from "./components/FamilyTree";
 import { HeroSection } from "./components/HeroSection";
+import { Login, type AuthUser } from "./components/Login";
 import { MemberDetails } from "./components/MemberDetails";
 import { StickyHeader } from "./components/StickyHeader";
 import { Toolbar } from "./components/Toolbar";
@@ -22,7 +24,23 @@ type PendingAction =
   | { type: "reset" }
   | null;
 
+const AUTH_KEY = "familytree.auth";
+
+const loadAuthUser = (): AuthUser | null => {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AuthUser;
+    if (parsed?.role === "admin" || parsed?.role === "user") return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export const App = () => {
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => loadAuthUser());
+  const [showLogin, setShowLogin] = useState(false);
   const [members, setMembers] = useState<FamilyMember[]>(() => loadMembers());
   const [selectedId, setSelectedId] = useState<string | null>(() => members[0]?.id ?? null);
   const [query, setQuery] = useState("");
@@ -33,10 +51,21 @@ export const App = () => {
   const archiveRef = useRef<HTMLDivElement>(null);
   const treeRef = useRef<HTMLElement>(null);
   const aboutRef = useRef<HTMLElement>(null);
+  const contactRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     saveMembers(members);
   }, [members]);
+
+  useEffect(() => {
+    if (authUser) localStorage.setItem(AUTH_KEY, JSON.stringify(authUser));
+    else localStorage.removeItem(AUTH_KEY);
+  }, [authUser]);
+
+  const handleLogout = () => {
+    setAuthUser(null);
+    window.scrollTo({ top: 0 });
+  };
 
   // Hydrate from Supabase on mount (overwrites the localStorage cache shown during boot).
   useEffect(() => {
@@ -140,16 +169,18 @@ export const App = () => {
     setStatus("Member selected.");
   };
 
-  const handleToggleCollapse = (id: string) => {
+  const handleToggleCollapse = (id: string, wasCollapsed: boolean) => {
     const member = members.find((m) => m.id === id);
     if (!member) return;
 
-    setExpandedGeneration((current) => {
-      if (current === member.generation) {
-        return current + 1;
-      }
-      return member.generation;
-    });
+    // Intent-driven so it stays idempotent under React StrictMode's double-invocation:
+    // a click that wanted to expand always lands at >= gen+1, a click that wanted to
+    // collapse always lands at exactly gen.
+    if (wasCollapsed) {
+      setExpandedGeneration((current) => Math.max(current, member.generation + 1));
+    } else {
+      setExpandedGeneration(member.generation);
+    }
   };
 
   const handleSaveMember = (id: string, draft: MemberDraft) => {
@@ -272,6 +303,12 @@ export const App = () => {
     aboutRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const scrollToContact = () => {
+    contactRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const isAdmin = authUser?.role === "admin";
+
   return (
     <main className="app-shell">
       <StickyHeader
@@ -279,22 +316,20 @@ export const App = () => {
         selectedName={selectedMember?.name ?? null}
         onScrollToTree={scrollToTree}
         onScrollToAbout={scrollToAbout}
+        onScrollToContact={scrollToContact}
+        user={authUser}
+        onLogout={handleLogout}
+        onAdminLogin={() => setShowLogin(true)}
       />
+      {showLogin && !authUser && (
+        <Login
+          onLogin={(u) => { setAuthUser(u); setShowLogin(false); }}
+          onClose={() => setShowLogin(false)}
+        />
+      )}
       <HeroSection onScrollDown={scrollToArchive} />
       <div ref={archiveRef} className="archive-section">
-      <Toolbar
-        query={query}
-        status={status}
-        stats={archiveStats}
-        totalMembers={members.length}
-        visibleMembers={visibleMembers.length}
-        onQueryChange={setQuery}
-        onImport={handleImport}
-        onExport={handleExport}
-        onReset={() => setPendingAction({ type: "reset" })}
-      />
-
-      <section ref={treeRef} className="workspace" aria-label="Family tree workspace" data-reveal>
+      <section ref={treeRef} className={`workspace ${isAdmin ? "" : "workspace--solo"}`} aria-label="Family tree workspace" data-reveal>
         <FamilyTree
           expandedGeneration={expandedGeneration}
           members={tree}
@@ -304,14 +339,16 @@ export const App = () => {
           onSetExpandedGeneration={setExpandedGeneration}
         />
 
-        <MemberDetails
-          key={selectedMember?.id ?? "empty"}
-          member={selectedMember}
-          onAdd={handleAddMember}
-          onAddFather={handleAddFather}
-          onDelete={requestDelete}
-          onSave={handleSaveMember}
-        />
+        {isAdmin && (
+          <MemberDetails
+            key={selectedMember?.id ?? "empty"}
+            member={selectedMember}
+            onAdd={handleAddMember}
+            onAddFather={handleAddFather}
+            onDelete={requestDelete}
+            onSave={handleSaveMember}
+          />
+        )}
       </section>
 
       </div>
@@ -357,6 +394,10 @@ export const App = () => {
             &#x0936;&#x094D;&#x0930;&#x0940; &#x0915;&#x0947;&#x0936;&#x094D;&#x0935;&#x093E;&#x0928;&#x093F;&#x092F;&#x093E; &#x0935;&#x0902;&#x0936; &mdash; Preserved for generations to come.
           </p>
         </div>
+      </section>
+
+      <section ref={contactRef}>
+        <ContactSection />
       </section>
 
       {pendingAction && (
