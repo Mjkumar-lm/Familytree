@@ -98,7 +98,7 @@ export const validateMembers = (value: unknown): FamilyMember[] => {
     const generation = Number(raw.generation);
     const relationship = relationships.includes(raw.relationship as Relationship)
       ? (raw.relationship as Relationship)
-      : "Member";
+      : "Son";
     const parentId = typeof raw.parentId === "string" ? raw.parentId : null;
 
     if (!id || !name || !Number.isFinite(generation)) {
