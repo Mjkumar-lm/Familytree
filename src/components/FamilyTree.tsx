@@ -23,7 +23,7 @@ type SideMember = {
 
 type Row = {
   generation: number;
-  primary: TreeMember;
+  primary: TreeMember | null;
   leftMembers: SideMember[];
   rightMembers: SideMember[];
 };
@@ -151,6 +151,14 @@ export const FamilyTree = ({
         current = current.children.find((c) => c.relationship === "Son" || c.relationship === "Daughter");
       }
     }
+    // Extend rows for any generations beyond the trunk's last row so off-trunk
+    // descendants (e.g. children of a non-trunk sibling) still get a row to render in.
+    // Trunk slot stays empty — they render as a sibling cluster under their real parent.
+    const dataMaxGen = allMembers.reduce((m, x) => Math.max(m, x.generation), 0);
+    const lastTrunkGen = rows[rows.length - 1]?.generation ?? 0;
+    for (let g = lastTrunkGen + 1; g <= dataMaxGen; g++) {
+      rows.push({ generation: g, primary: null, leftMembers: [], rightMembers: [] });
+    }
     const rowByGen = new Map(rows.map((r) => [r.generation, r] as const));
 
     // Compute side ("left" / "right") for every non-trunk member
@@ -159,6 +167,7 @@ export const FamilyTree = ({
 
     for (const row of rows) {
       const trunk = row.primary;
+      if (!trunk) continue;
       const directSiblings = allMembers.filter((m) => {
         if (m.id === trunk.id || trunkIds.has(m.id)) return false;
         if (m.generation !== trunk.generation) return false;
@@ -458,7 +467,7 @@ const GenerationRow = ({
           )}
         </div>
 
-        {showTrunk ? (
+        {showTrunk && primary ? (
           <div className="trunk-node">
             <MemberNode
               member={primary}
