@@ -6,7 +6,7 @@ const TITLE_COLOR: [number, number, number] = [60, 36, 24];
 const SUBTITLE_COLOR: [number, number, number] = [120, 96, 70];
 const GOLD: [number, number, number] = [196, 154, 70];
 
-export const exportFamilyTreeAsPdf = async (titleText = "Keshwani Family Tree") => {
+export const exportFamilyTreeAsPdf = async (titleText = "Keshwania Family Tree") => {
   // Capture the inner tree (rows + connectors) so we don't include any
   // pan-zoom viewport whitespace around it.
   const tree = document.querySelector(".organic-tree") as HTMLElement | null;

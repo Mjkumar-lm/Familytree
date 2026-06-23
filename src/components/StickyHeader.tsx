@@ -26,7 +26,7 @@ export const StickyHeader = ({
     <header className={`sticky-header sticky-header--visible ${scrolled ? "sticky-header--scrolled" : ""}`}>
       <div className="sticky-header-left">
         <span className="sticky-om" aria-hidden="true">&#x0950;</span>
-        <span className="sticky-brand">Keshwani's</span>
+        <span className="sticky-brand">Keshwania's</span>
       </div>
 
       <nav className="sticky-header-center" aria-label="Page navigation">
