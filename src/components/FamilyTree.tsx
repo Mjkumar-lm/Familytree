@@ -58,7 +58,7 @@ export const FamilyTree = ({
       reset();
       // Wait for layout + framer-motion enter animation (~350ms) + buffer.
       await new Promise((r) => setTimeout(r, 800));
-      await exportFamilyTreeAsPdf("Keshwani Family Tree");
+      await exportFamilyTreeAsPdf("Keshwania Family Tree");
     } catch (err) {
       console.error(err);
       alert("Could not generate PDF. Please try again.");

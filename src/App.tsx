@@ -18,6 +18,7 @@ import {
   findMember,
   validateMembers,
 } from "./utils/tree";
+//hii changes
 
 type PendingAction =
   | { type: "delete"; member: FamilyMember; descendantCount: number }
@@ -369,11 +370,11 @@ export const App = () => {
           </div>
 
           <p className="about-eyebrow" data-reveal style={{ transitionDelay: "0.1s" }}>Our Heritage</p>
-          <h2 className="about-title" data-reveal style={{ transitionDelay: "0.2s" }}>About the Keshwani Lineage</h2>
+          <h2 className="about-title" data-reveal style={{ transitionDelay: "0.2s" }}>About the Keshwania Lineage</h2>
           <div className="about-divider" aria-hidden="true" data-reveal style={{ transitionDelay: "0.3s" }}><span /><span className="about-divider-dot" /><span /></div>
 
           <p className="about-body" data-reveal style={{ transitionDelay: "0.4s" }}>
-            The Keshwani family lineage spans <strong>twenty-two generations</strong>, tracing its roots back to the
+            The Keshwania family lineage spans <strong>twenty-two generations</strong>, tracing its roots back to the
             revered ancestor <strong>Jhanj Dev</strong>. This living record preserves the names, relationships, and
             connections of each generation — from the earliest known forebears to the present day.
           </p>

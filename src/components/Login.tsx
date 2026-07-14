@@ -41,7 +41,7 @@ export const Login = ({ onLogin, onClose }: LoginProps) => {
 
         <div className="login-brand">
           <span className="login-om" aria-hidden="true">&#x0950;</span>
-          <span className="login-brand-text">Keshwani's Lineage</span>
+          <span className="login-brand-text">Keshwania's Lineage</span>
         </div>
 
         <h1 className="login-title">Admin Sign In</h1>

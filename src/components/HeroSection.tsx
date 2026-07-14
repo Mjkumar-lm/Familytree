@@ -40,7 +40,7 @@ export const HeroSection = ({ onScrollDown }: { onScrollDown: () => void }) => {
         </div>
 
         <p className="hero-sanskrit">&#x0936;&#x094D;&#x0930;&#x0940; &#x0915;&#x0947;&#x0936;&#x094D;&#x0935;&#x093E;&#x0928;&#x093F;&#x092F;&#x093E; &#x0935;&#x0902;&#x0936;</p>
-        <h1 className="hero-title">Keshwani's</h1>
+        <h1 className="hero-title">Keshwania's</h1>
         <div className="hero-divider" aria-hidden="true">
           <span />
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" opacity="0.6">
