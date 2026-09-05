@@ -1,6 +1,6 @@
 import { ChevronDown, Split } from "lucide-react";
 import type { TreeMember } from "../types";
-import { getInitials } from "../utils/tree";
+import { formatLifeJourney, getInitials } from "../utils/tree";
 
 interface MemberNodeProps {
   member: TreeMember;
@@ -9,6 +9,7 @@ interface MemberNodeProps {
   depth: number;
   onSelect: (id: string) => void;
   onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onOpenSubtree: (id: string) => void;
   hideCollapseButton?: boolean;
 }
 
@@ -19,14 +20,22 @@ export const MemberNode = ({
   depth,
   onSelect,
   onToggleCollapse,
+  onOpenSubtree,
   hideCollapseButton,
 }: MemberNodeProps) => {
   const hasChildren = member.children.length > 0;
   const depthTone = depth % 5;
+  const lifeJourney = formatLifeJourney(member.birth, member.death);
 
   return (
     <div id={`node-${member.id}`} className={`member-node tone-${depthTone} ${isSelected ? "selected" : ""}`}>
-      <button type="button" className="plaque-button" onClick={() => onSelect(member.id)}>
+      <button
+        type="button"
+        className="plaque-button"
+        onClick={() => onSelect(member.id)}
+        onDoubleClick={() => onOpenSubtree(member.id)}
+        title={`Double-click to open ${member.name}'s descendants in a new tab`}
+      >
         <div className="plaque-grain" aria-hidden="true" />
         <div className="plaque-inner">
           <div className="plaque-avatar">
@@ -35,6 +44,7 @@ export const MemberNode = ({
           <div className="plaque-content">
             <span className="plaque-gen-tag">G{member.generation}</span>
             <strong className="plaque-name">{member.name}</strong>
+            {lifeJourney && <span className="plaque-life">{lifeJourney}</span>}
             <div className="plaque-meta">
               {hasChildren && <span className="plaque-linked">{member.children.length} linked</span>}
             </div>

@@ -1,18 +1,23 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronsDownUp, ChevronsUpDown, Download, Maximize2, Minus, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ChevronsDownUp, ChevronsUpDown, Download, Maximize2, Minus, Plus, Search, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { usePanZoom } from "../hooks/usePanZoom";
-import type { TreeMember } from "../types";
+import type { FamilyMember, TreeMember } from "../types";
 import { exportFamilyTreeAsPdf } from "../utils/exportPdf";
 import { MemberNode } from "./MemberNode";
 
 interface FamilyTreeProps {
   members: TreeMember[];
+  searchMembers: FamilyMember[];
   selectedId: string | null;
+  query: string;
   expandedGeneration: number;
   onSelect: (id: string) => void;
+  onQueryChange: (query: string) => void;
   onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onOpenSubtree: (id: string) => void;
   onSetExpandedGeneration: (n: number) => void;
+  subtreeRootName?: string | null;
 }
 
 type SideMember = {
@@ -30,11 +35,16 @@ type Row = {
 
 export const FamilyTree = ({
   members,
+  searchMembers,
   selectedId,
+  query,
   expandedGeneration,
   onSelect,
+  onQueryChange,
   onToggleCollapse,
+  onOpenSubtree,
   onSetExpandedGeneration,
+  subtreeRootName,
 }: FamilyTreeProps) => {
   const { containerRef, contentRef, transform, isPanning, zoomIn, zoomOut, reset, panToElement } = usePanZoom({
     minScale: 0.3,
@@ -103,6 +113,11 @@ export const FamilyTree = ({
     return { maxGeneration: max, allBranchableIds: ids };
   }, [members]);
 
+  useEffect(() => {
+    if (!subtreeRootName) return;
+    setExpandedSiblings(new Set(allBranchableIds));
+  }, [allBranchableIds, subtreeRootName]);
+
   const isFullyExpanded =
     expandedGeneration >= maxGeneration &&
     [...allBranchableIds].every((id) => expandedSiblings.has(id));
@@ -115,6 +130,13 @@ export const FamilyTree = ({
       onSetExpandedGeneration(maxGeneration);
       setExpandedSiblings(new Set(allBranchableIds));
     }
+  };
+
+  const handleSearchSelect = (member: FamilyMember) => {
+    onQueryChange(member.name);
+    onSetExpandedGeneration(Math.max(expandedGeneration, member.generation));
+    onSelect(member.id);
+    window.setTimeout(() => panToElement(`node-${member.id}`), 120);
   };
 
   const generationsList: Row[] = useMemo(() => {
@@ -229,6 +251,12 @@ export const FamilyTree = ({
   if (!members.length) {
     return (
       <section className="tree-panel empty-panel">
+        <TreeSearch
+          options={searchMembers}
+          query={query}
+          onQueryChange={onQueryChange}
+          onSelectOption={handleSearchSelect}
+        />
         <p>No members match this search.</p>
       </section>
     );
@@ -239,9 +267,15 @@ export const FamilyTree = ({
       <div className="tree-titlebar" data-reveal>
         <div>
           <p className="eyebrow">The Direct Line</p>
-          <h2>From Jhanj Dev to the present</h2>
+          <h2>{subtreeRootName ? `${subtreeRootName} and direct descendants` : "From Jhanj Dev to the present"}</h2>
         </div>
         <div className="tree-title-actions">
+          <TreeSearch
+            options={searchMembers}
+            query={query}
+            onQueryChange={onQueryChange}
+            onSelectOption={handleSearchSelect}
+          />
           <button
             type="button"
             className="download-pdf-btn"
@@ -292,8 +326,8 @@ export const FamilyTree = ({
         >
           <div className="organic-tree">
             {(() => {
-              const isVisibleAt = (m: SideMember, rowIdx: number) => {
-                if (rowIdx >= expandedGeneration) return false;
+              const isVisibleAt = (m: SideMember, row: Row) => {
+                if (row.generation > expandedGeneration) return false;
                 if (m.kind === "sibling") return true;
                 return m.ancestorChain.every((id) => expandedSiblings.has(id));
               };
@@ -301,20 +335,22 @@ export const FamilyTree = ({
               for (let i = 0; i < generationsList.length; i++) {
                 const r = generationsList[i];
                 if (
-                  r.leftMembers.some((m) => isVisibleAt(m, i)) ||
-                  r.rightMembers.some((m) => isVisibleAt(m, i))
+                  r.leftMembers.some((m) => isVisibleAt(m, r)) ||
+                  r.rightMembers.some((m) => isVisibleAt(m, r))
                 ) {
                   lastSideRow = i;
                 }
               }
-              const renderUpTo = Math.max(expandedGeneration, lastSideRow + 1);
-              const rows = generationsList.slice(0, renderUpTo);
+              const rows = generationsList.filter(
+                (row, index) => row.generation <= expandedGeneration || index <= lastSideRow,
+              );
               return (
                 <AnimatePresence initial={false}>
                   {rows.map((gen, index) => {
                     const isLastGen = index === generationsList.length - 1;
-                    const showTrunk = index < expandedGeneration;
-                    const trunkChildVisible = index + 1 < expandedGeneration;
+                    const showTrunk = gen.generation <= expandedGeneration;
+                    const nextGeneration = generationsList[index + 1]?.generation;
+                    const trunkChildVisible = nextGeneration !== undefined && nextGeneration <= expandedGeneration;
                     return (
                       <motion.div
                         key={gen.generation}
@@ -335,6 +371,7 @@ export const FamilyTree = ({
                           expandedSiblings={expandedSiblings}
                           onSelect={onSelect}
                           onToggleCollapse={handleToggleCollapse}
+                          onOpenSubtree={onOpenSubtree}
                           onToggleSibling={toggleSibling}
                         />
                       </motion.div>
@@ -347,6 +384,74 @@ export const FamilyTree = ({
         </div>
       </div>
     </section>
+  );
+};
+
+interface TreeSearchProps {
+  options: FamilyMember[];
+  query: string;
+  onQueryChange: (query: string) => void;
+  onSelectOption: (member: FamilyMember) => void;
+}
+
+const TreeSearch = ({ options, query, onQueryChange, onSelectOption }: TreeSearchProps) => {
+  const [focused, setFocused] = useState(false);
+  const normalizedQuery = query.trim().toLowerCase();
+  const matchingOptions = useMemo(
+    () =>
+      options
+        .filter((member) => !normalizedQuery || member.name.toLowerCase().includes(normalizedQuery))
+        .slice()
+        .sort((a, b) => a.generation - b.generation || a.name.localeCompare(b.name))
+        .slice(0, 12),
+    [normalizedQuery, options],
+  );
+  const showDropdown = focused && matchingOptions.length > 0;
+
+  return (
+    <div className="tree-search-wrap">
+      <label className="tree-search">
+        <Search size={16} aria-hidden="true" />
+        <input
+          aria-label="Search name"
+          value={query}
+          placeholder="Search name"
+          onChange={(event) => onQueryChange(event.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => window.setTimeout(() => setFocused(false), 120)}
+        />
+        {query && (
+          <button
+            type="button"
+            className="tree-search-clear"
+            aria-label="Clear search"
+            title="Clear search"
+            onClick={() => onQueryChange("")}
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        )}
+      </label>
+      {showDropdown && (
+        <div className="tree-search-menu" role="listbox" aria-label="Matching names">
+          {matchingOptions.map((member) => (
+            <button
+              type="button"
+              className="tree-search-option"
+              key={member.id}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onSelectOption(member);
+                setFocused(false);
+              }}
+            >
+              <span>{member.name}</span>
+              <strong>G{member.generation}</strong>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -386,6 +491,7 @@ interface GenerationRowProps {
   expandedSiblings: Set<string>;
   onSelect: (id: string) => void;
   onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onOpenSubtree: (id: string) => void;
   onToggleSibling: (id: string, wasCollapsed: boolean) => void;
 }
 
@@ -399,6 +505,7 @@ const GenerationRow = ({
   expandedSiblings,
   onSelect,
   onToggleCollapse,
+  onOpenSubtree,
   onToggleSibling,
 }: GenerationRowProps) => {
   const { primary, leftMembers, rightMembers } = row;
@@ -450,6 +557,7 @@ const GenerationRow = ({
                 expandedSiblings={expandedSiblings}
                 onSelect={onSelect}
                 onToggleCollapse={onToggleCollapse}
+                onOpenSubtree={onOpenSubtree}
                 onToggleSibling={onToggleSibling}
               />
             ) : (
@@ -461,6 +569,7 @@ const GenerationRow = ({
                 expandedSiblings={expandedSiblings}
                 onSelect={onSelect}
                 onToggleCollapse={onToggleCollapse}
+                onOpenSubtree={onOpenSubtree}
                 onToggleSibling={onToggleSibling}
               />
             ),
@@ -476,6 +585,7 @@ const GenerationRow = ({
               depth={primary.generation}
               onSelect={onSelect}
               onToggleCollapse={onToggleCollapse}
+              onOpenSubtree={onOpenSubtree}
               hideCollapseButton={!hasMoreGenerations}
             />
           </div>
@@ -494,6 +604,7 @@ const GenerationRow = ({
                 expandedSiblings={expandedSiblings}
                 onSelect={onSelect}
                 onToggleCollapse={onToggleCollapse}
+                onOpenSubtree={onOpenSubtree}
                 onToggleSibling={onToggleSibling}
               />
             ) : (
@@ -505,6 +616,7 @@ const GenerationRow = ({
                 expandedSiblings={expandedSiblings}
                 onSelect={onSelect}
                 onToggleCollapse={onToggleCollapse}
+                onOpenSubtree={onOpenSubtree}
                 onToggleSibling={onToggleSibling}
               />
             ),
@@ -522,6 +634,7 @@ interface SideMemberCellProps {
   expandedSiblings: Set<string>;
   onSelect: (id: string) => void;
   onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onOpenSubtree: (id: string) => void;
   onToggleSibling: (id: string, wasCollapsed: boolean) => void;
 }
 
@@ -532,6 +645,7 @@ const SideMemberCell = ({
   expandedSiblings,
   onSelect,
   onToggleCollapse,
+  onOpenSubtree,
   onToggleSibling,
 }: SideMemberCellProps) => {
   const { member } = entry;
@@ -546,6 +660,7 @@ const SideMemberCell = ({
       depth={member.generation}
       onSelect={onSelect}
       onToggleCollapse={onToggleSibling}
+      onOpenSubtree={onOpenSubtree}
       hideCollapseButton={!hasKids}
     />
   );
@@ -580,6 +695,7 @@ interface SiblingClusterProps {
   expandedSiblings: Set<string>;
   onSelect: (id: string) => void;
   onToggleCollapse: (id: string, wasCollapsed: boolean) => void;
+  onOpenSubtree: (id: string) => void;
   onToggleSibling: (id: string, wasCollapsed: boolean) => void;
 }
 
@@ -592,6 +708,7 @@ const SiblingCluster = ({
   expandedSiblings,
   onSelect,
   onToggleCollapse,
+  onOpenSubtree,
   onToggleSibling,
 }: SiblingClusterProps) => {
   // The child that sits directly under the parent (and carries the up-drop):
@@ -614,6 +731,7 @@ const SiblingCluster = ({
               depth={member.generation}
               onSelect={onSelect}
               onToggleCollapse={hasKids ? onToggleSibling : onToggleCollapse}
+              onOpenSubtree={onOpenSubtree}
               hideCollapseButton={!hasKids}
             />
           </div>

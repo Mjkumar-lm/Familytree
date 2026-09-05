@@ -921,6 +921,7 @@ textarea:focus-visible {
 
 .tree-titlebar {
   position: relative;
+  z-index: 400;
   padding: 20px 56px 20px 28px;
   border-bottom: 1.5px solid rgba(201, 168, 76, 0.3);
   background:
@@ -1014,6 +1015,7 @@ textarea:focus-visible {
 
 .tree-scroll {
   position: relative;
+  z-index: 1;
   overflow: hidden;
   padding: 0;
 }
@@ -1458,6 +1460,15 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.plaque-life {
+  display: block;
+  color: var(--muted);
+  font-family: var(--body-font);
+  font-size: 11px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
 .plaque-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1597,7 +1608,7 @@ textarea:focus-visible {
 .details-panel {
   position: sticky;
   top: 18px;
-  overflow: hidden;
+  overflow: auto;
   min-height: calc(100vh - 245px);
 }
 
@@ -1647,6 +1658,29 @@ textarea:focus-visible {
   flex-direction: column;
   gap: 10px;
   padding: 0 20px 16px;
+}
+
+.life-date-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 20px 10px;
+}
+
+.life-date-grid--inline {
+  padding: 0;
+}
+
+.life-date-grid label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--muted);
+  font-family: var(--heading-font);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .simple-select {
@@ -1822,6 +1856,11 @@ textarea {
 .details-actions {
   padding: 0 20px 20px;
   margin-top: 16px;
+}
+
+.details-actions--compact {
+  margin-top: 0;
+  padding-bottom: 12px;
 }
 
 /* ============================================================
@@ -2032,6 +2071,14 @@ textarea {
   .expand-all-btn {
     margin-right: 0;
     justify-content: center;
+  }
+
+  .tree-title-actions {
+    justify-content: stretch;
+  }
+
+  .tree-search-wrap {
+    width: 100%;
   }
 
   .zoom-controls {
@@ -2913,6 +2960,122 @@ textarea {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tree-search-wrap {
+  position: relative;
+  width: min(260px, 100%);
+  z-index: 250;
+}
+
+.tree-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  width: 100%;
+  padding: 0 8px 0 12px;
+  border: 1.5px solid rgba(201, 168, 76, 0.35);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(250, 243, 228, 0.9);
+}
+
+.tree-search:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.16);
+}
+
+.tree-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font-family: var(--body-font);
+  font-size: 14px;
+}
+
+.tree-search input::placeholder {
+  color: rgba(106, 87, 71, 0.68);
+}
+
+.tree-search-clear {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: 50%;
+  color: var(--muted);
+  background: rgba(250, 243, 228, 0.75);
+}
+
+.tree-search-clear:hover {
+  color: var(--ink);
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.tree-search-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 260;
+  max-height: 320px;
+  overflow: auto;
+  padding: 6px;
+  border: 1.5px solid rgba(201, 168, 76, 0.35);
+  border-radius: 12px;
+  background: rgb(250, 243, 228);
+  box-shadow: 0 14px 34px rgba(62, 39, 35, 0.18);
+}
+
+.tree-search-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+  font-family: var(--body-font);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.tree-search-option:hover,
+.tree-search-option:focus-visible {
+  outline: 0;
+  background: var(--gold-soft);
+}
+
+.tree-search-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-search-option strong {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.45);
+  font-family: var(--heading-font);
+  font-size: 10px;
+  letter-spacing: 0.05em;
 }
 
 .download-pdf-btn {

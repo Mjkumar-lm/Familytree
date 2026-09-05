@@ -1,7 +1,7 @@
-import { GitBranch, Plus, Save, Trash2, X } from "lucide-react";
+import { CalendarDays, GitBranch, Plus, Save, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { FamilyMember, MemberDraft, Relationship } from "../types";
-import { getInitials } from "../utils/tree";
+import { formatLifeJourney, getInitials } from "../utils/tree";
 
 interface MemberDetailsProps {
   member: FamilyMember | null;
@@ -19,8 +19,12 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
   const [showAdd, setShowAdd]           = useState(false);
   const [addName, setAddName]           = useState("");
   const [addRel, setAddRel]             = useState<Relationship>("Son");
+  const [addBirth, setAddBirth]         = useState("");
+  const [addDeath, setAddDeath]         = useState("");
   const [showFather, setShowFather]     = useState(false);
   const [fatherName, setFatherName]     = useState("");
+  const [editBirth, setEditBirth]       = useState(member?.birth ?? "");
+  const [editDeath, setEditDeath]       = useState(member?.death ?? "");
 
   // Reset local state when member changes
   const memberId = member?.id ?? null;
@@ -31,8 +35,12 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
     setShowAdd(false);
     setAddName("");
     setAddRel("Son");
+    setAddBirth("");
+    setAddDeath("");
     setShowFather(false);
     setFatherName("");
+    setEditBirth(member?.birth ?? "");
+    setEditDeath(member?.death ?? "");
   }
 
   if (!member) {
@@ -57,6 +65,20 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
     setNewName("");
   };
 
+  const handleSaveLifeJourney = () => {
+    const birth = editBirth.trim();
+    const death = editDeath.trim();
+    if (birth === member.birth && death === member.death) return;
+    onSave(member.id, {
+      name: member.name,
+      generation: member.generation,
+      relationship: member.relationship,
+      notes: member.notes,
+      birth,
+      death,
+    });
+  };
+
   const handleAdd = () => {
     const trimmed = addName.trim();
     if (!trimmed) return;
@@ -65,11 +87,13 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
       generation: member.generation + 1,
       relationship: addRel,
       notes: "",
-      birth: "",
-      death: "",
+      birth: addBirth.trim(),
+      death: addDeath.trim(),
     });
     setAddName("");
     setAddRel("Son");
+    setAddBirth("");
+    setAddDeath("");
     setShowAdd(false);
   };
 
@@ -82,6 +106,8 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
   };
 
   const nameChanged = newName.trim() !== "" && newName.trim() !== member.name;
+  const lifeJourney = formatLifeJourney(member.birth, member.death);
+  const lifeJourneyChanged = editBirth.trim() !== member.birth || editDeath.trim() !== member.death;
   const isRoot = member.parentId === null;
 
   return (
@@ -97,6 +123,7 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
           <h2>{member.name}</h2>
           <div className="quick-facts">
             <span><GitBranch size={14} aria-hidden="true" /> Gen {member.generation}</span>
+            {lifeJourney && <span><CalendarDays size={14} aria-hidden="true" /> {lifeJourney}</span>}
           </div>
         </div>
       </div>
@@ -124,6 +151,40 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
           title="Save name"
         >
           <Save size={16} />
+        </button>
+      </div>
+
+      {/* -- Life journey -- */}
+      <div className="panel-section-title"><span>Life Journey</span></div>
+      <div className="life-date-grid">
+        <label>
+          <span>Birth Date</span>
+          <input
+            className="simple-input"
+            placeholder="Birth date"
+            value={editBirth}
+            onChange={e => setEditBirth(e.target.value)}
+          />
+        </label>
+        <label>
+          <span>Date of Passing</span>
+          <input
+            className="simple-input"
+            placeholder="Date of passing"
+            value={editDeath}
+            onChange={e => setEditDeath(e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="details-actions details-actions--compact">
+        <button
+          type="button"
+          className="primary-button"
+          disabled={!lifeJourneyChanged}
+          onClick={handleSaveLifeJourney}
+          title="Save life journey"
+        >
+          <Save size={16} /> Save
         </button>
       </div>
 
@@ -155,11 +216,31 @@ export const MemberDetails = ({ member, readOnly = false, onSave, onAdd, onAddFa
               <option key={r} value={r}>{r}</option>
             ))}
           </select>
+          <div className="life-date-grid life-date-grid--inline">
+            <label>
+              <span>Birth Date</span>
+              <input
+                className="simple-input"
+                placeholder="Optional"
+                value={addBirth}
+                onChange={e => setAddBirth(e.target.value)}
+              />
+            </label>
+            <label>
+              <span>Date of Passing</span>
+              <input
+                className="simple-input"
+                placeholder="Optional"
+                value={addDeath}
+                onChange={e => setAddDeath(e.target.value)}
+              />
+            </label>
+          </div>
           <div className="add-form-actions">
             <button type="button" className="primary-button" disabled={!addName.trim()} onClick={handleAdd}>
               <Save size={16} /> Save
             </button>
-            <button type="button" className="secondary-button" onClick={() => { setShowAdd(false); setAddName(""); setAddRel("Son"); }}>
+            <button type="button" className="secondary-button" onClick={() => { setShowAdd(false); setAddName(""); setAddRel("Son"); setAddBirth(""); setAddDeath(""); }}>
               <X size={16} /> Cancel
             </button>
           </div>

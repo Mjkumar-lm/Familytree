@@ -12,6 +12,7 @@ import type { FamilyMember, MemberDraft } from "./types";
 import { loadMembers, loadMembersFromCloud, resetMembers, saveMembers } from "./utils/storage";
 import {
   buildTree,
+  collectMemberAndDescendantIds,
   collectDescendantIds,
   createMemberId,
   filterMembersBySearch,
@@ -40,12 +41,15 @@ const loadAuthUser = (): AuthUser | null => {
 };
 
 export const App = () => {
+  const subtreeRootId = useMemo(() => new URLSearchParams(window.location.search).get("root"), []);
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => loadAuthUser());
   const [showLogin, setShowLogin] = useState(false);
   const [members, setMembers] = useState<FamilyMember[]>(() => loadMembers());
-  const [selectedId, setSelectedId] = useState<string | null>(() => members[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => subtreeRootId ?? members[0]?.id ?? null);
   const [query, setQuery] = useState("");
-  const [expandedGeneration, setExpandedGeneration] = useState<number>(1);
+  const [expandedGeneration, setExpandedGeneration] = useState<number>(
+    subtreeRootId ? Number.MAX_SAFE_INTEGER : 1,
+  );
   const [status, setStatus] = useState("Your family tree is saved in this browser.");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [showHeader, setShowHeader] = useState(false);
@@ -148,8 +152,17 @@ export const App = () => {
     };
   }, []);
 
+  const subtreeRoot = useMemo(
+    () => (subtreeRootId ? findMember(members, subtreeRootId) : null),
+    [members, subtreeRootId],
+  );
+  const scopedMembers = useMemo(() => {
+    if (!subtreeRootId || !subtreeRoot) return members;
+    const subtreeIds = new Set(collectMemberAndDescendantIds(members, subtreeRootId));
+    return members.filter((member) => subtreeIds.has(member.id));
+  }, [members, subtreeRoot, subtreeRootId]);
   const selectedMember = useMemo(() => findMember(members, selectedId), [members, selectedId]);
-  const visibleMembers = useMemo(() => filterMembersBySearch(members, query), [members, query]);
+  const visibleMembers = useMemo(() => filterMembersBySearch(scopedMembers, query), [scopedMembers, query]);
   const tree = useMemo(() => buildTree(visibleMembers), [visibleMembers]);
   const archiveStats = useMemo(() => {
     const directLineCount = members.filter((member) => member.relationship === "Son").length;
@@ -168,6 +181,16 @@ export const App = () => {
   const handleSelect = (id: string) => {
     setSelectedId(id);
     setStatus("Member selected.");
+  };
+
+  const handleOpenSubtree = (id: string) => {
+    const member = members.find((item) => item.id === id);
+    if (!member) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("root", id);
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
+    setStatus(`Opening ${member.name} and direct descendants in a new tab.`);
   };
 
   const handleToggleCollapse = (id: string, wasCollapsed: boolean) => {
@@ -334,10 +357,15 @@ export const App = () => {
         <FamilyTree
           expandedGeneration={expandedGeneration}
           members={tree}
+          query={query}
+          searchMembers={scopedMembers}
           selectedId={selectedId}
           onSelect={handleSelect}
+          onQueryChange={setQuery}
           onToggleCollapse={handleToggleCollapse}
+          onOpenSubtree={handleOpenSubtree}
           onSetExpandedGeneration={setExpandedGeneration}
+          subtreeRootName={subtreeRoot?.name ?? null}
         />
 
         {isAdmin && (

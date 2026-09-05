@@ -38,6 +38,11 @@ export const getInitials = (name: string) =>
     .map((part) => part[0]?.toUpperCase())
     .join("");
 
+export const formatLifeJourney = (birth: string, death: string) => {
+  const dates = [birth.trim(), death.trim()].filter(Boolean);
+  return dates.length ? `Life Journey: ${dates.join(" - ")}` : "";
+};
+
 export const createMemberId = (name: string) => {
   const slug = name
     .trim()
@@ -52,6 +57,12 @@ export const collectDescendantIds = (members: FamilyMember[], parentId: string):
   return children.flatMap((child) => [child.id, ...collectDescendantIds(members, child.id)]);
 };
 
+export const collectMemberAndDescendantIds = (members: FamilyMember[], memberId: string): string[] => {
+  const member = members.find((item) => item.id === memberId);
+  if (!member) return [];
+  return [member.id, ...collectDescendantIds(members, member.id)];
+};
+
 export const filterMembersBySearch = (members: FamilyMember[], query: string) => {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) {
@@ -61,7 +72,7 @@ export const filterMembersBySearch = (members: FamilyMember[], query: string) =>
   const matchingIds = new Set(
     members
       .filter((member) => {
-        const haystack = `${member.name} ${member.relationship} ${member.generation} ${member.notes}`.toLowerCase();
+        const haystack = member.name.toLowerCase();
         return haystack.includes(normalizedQuery);
       })
       .map((member) => member.id),
@@ -77,6 +88,12 @@ export const filterMembersBySearch = (members: FamilyMember[], query: string) =>
       }
     });
   }
+
+  members.forEach((member) => {
+    if (matchingIds.has(member.id)) {
+      collectDescendantIds(members, member.id).forEach((id) => matchingIds.add(id));
+    }
+  });
 
   return members.filter((member) => matchingIds.has(member.id));
 };
